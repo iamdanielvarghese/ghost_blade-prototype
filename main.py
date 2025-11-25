@@ -49,21 +49,38 @@ class Hero:
 
         self.rect.y += self.vel_y
 
-    def check_ground(self):
-        ground_y = 350  # ground level
+    def check_ground(self, platform_list):
+        self.on_ground = False
 
-        if self.rect.bottom >= ground_y:
-            self.rect.bottom = ground_y
-            self.vel_y = 0
-            self.on_ground = True
+        for plat in platform_list:
+            # Check pnly if hero is falling
+            if self.vel_y > 0 and self.rect.colliderect(plat):
+                # Hero stands on the platform
+                self.rect.bottom = plat.top
+                self.vel_y = 0
+                self.on_ground = True
 
     def update(self):
         self.handle_input()
         self.apply_gravity()
-        self.check_ground()
+        self.check_ground(platforms)
+
+       # Keep hero inside screen
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.rect.right > WIDTH:
+            self.rect.right = WIDTH
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
+
+
+# ---- PLATFORMS ----
+platforms = [
+    pygame.Rect(0, 350, 800, 50),
+    pygame.Rect(200, 250, 150, 20),
+    pygame.Rect(450, 150, 200, 20)
+]
 
 
 # Create the hero
@@ -79,6 +96,11 @@ while True:
     screen.fill((30, 30, 30))
 
     hero.update()
+
+    # Draw platforms
+    for p in platforms:
+        pygame.draw.rect(screen, (80, 80, 80), p)  # grey platforms for now
+
     hero.draw(screen)
 
     pygame.display.flip()
