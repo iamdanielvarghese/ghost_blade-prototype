@@ -81,7 +81,7 @@ background = pygame.transform.scale(background, (WIDTH, HEIGHT))
 
 # ---- PLATFORMS ----
 platforms = [
-    pygame.Rect(0, 350, 800, 50)
+    pygame.Rect(0, 380, 800, 50)
 
 ]
 
