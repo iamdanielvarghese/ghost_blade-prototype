@@ -53,7 +53,7 @@ class Hero:
         self.on_ground = False
 
         for plat in platform_list:
-            # Check pnly if hero is falling
+            # Check only if hero is falling
             if self.vel_y > 0 and self.rect.colliderect(plat):
                 # Hero stands on the platform
                 self.rect.bottom = plat.top
@@ -75,11 +75,14 @@ class Hero:
         surface.blit(self.image, self.rect)
 
 
+# Background
+background = pygame.image.load("background.png").convert()
+background = pygame.transform.scale(background, (WIDTH, HEIGHT))
+
 # ---- PLATFORMS ----
 platforms = [
-    pygame.Rect(0, 350, 800, 50),
-    pygame.Rect(200, 250, 150, 20),
-    pygame.Rect(450, 150, 200, 20)
+    pygame.Rect(0, 350, 800, 50)
+
 ]
 
 
@@ -93,13 +96,9 @@ while True:
             pygame.quit()
             sys.exit()
 
-    screen.fill((30, 30, 30))
+    screen.blit(background, (0, 0))
 
     hero.update()
-
-    # Draw platforms
-    for p in platforms:
-        pygame.draw.rect(screen, (80, 80, 80), p)  # grey platforms for now
 
     hero.draw(screen)
 
