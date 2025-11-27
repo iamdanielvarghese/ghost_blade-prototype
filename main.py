@@ -11,7 +11,7 @@ clock = pygame.time.Clock()
 
 # Load & scale hero sprite
 hero_img = pygame.image.load("hero_idle.png").convert_alpha()
-hero_img = pygame.transform.scale(hero_img, (48, 48))
+hero_img = pygame.transform.scale(hero_img, (64, 64))
 
 # --- HERO CLASS ---
 
@@ -39,11 +39,11 @@ class Hero:
 
         # Jump
         if (keys[pygame.K_SPACE] or keys[pygame.K_w] or keys[pygame.K_UP]) and self.on_ground:
-            self.vel_y = -12
+            self.vel_y = -9
             self.on_ground = False
 
     def apply_gravity(self):
-        self.vel_y += 0.5  # gravity force
+        self.vel_y += 0.7  # gravity force
         if self.vel_y > 10:
             self.vel_y = 10
 
@@ -79,15 +79,47 @@ class Hero:
 background = pygame.image.load("background.png").convert()
 background = pygame.transform.scale(background, (WIDTH, HEIGHT))
 
+# ----- ENEMY CLASS -----
+
+
+class Enemy:
+    def __init__(self, x, y):
+        self.image = pygame.Surface((40, 60))  # temporary placeholder body
+        self.image.fill((200, 50, 50))  # red enemy for now
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x, y)
+
+        self.speed = 2
+        self.direction = 1  # 1 = right , -1 = left
+
+    def update(self):
+        # Move enemy
+        self.rect.x += self.speed * self.direction
+
+        # FLip direction when hitting screen boundaries
+        if self.rect.right > WIDTH:
+            self.rect.right = WIDTH
+            self.direction *= -1
+        if self.rect.left < 0:
+            self.rect.left = 0
+            self.direction *= -1
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
+
+
 # ---- PLATFORMS ----
 platforms = [
     pygame.Rect(0, 380, 800, 50)
-
 ]
 
 
 # Create the hero
 hero = Hero(200, 200)
+
+# Creat the enemy
+enemy = Enemy(300, 320)
+
 
 # --- MAIN GAME LOOP ---
 while True:
@@ -96,11 +128,14 @@ while True:
             pygame.quit()
             sys.exit()
 
+    hero.update()
+    enemy.update()
+
+    # if needed for background placement earlier
     screen.blit(background, (0, 0))
 
-    hero.update()
-
     hero.draw(screen)
+    enemy.draw(screen)
 
     pygame.display.flip()
     clock.tick(60)
