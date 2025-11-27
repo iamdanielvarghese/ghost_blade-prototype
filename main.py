@@ -88,15 +88,26 @@ class Enemy:
         self.image.fill((200, 50, 50))  # red enemy for now
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
-
+        self.alert = False
         self.speed = 2
         self.direction = 1  # 1 = right , -1 = left
 
-    def update(self):
-        # Move enemy
-        self.rect.x += self.speed * self.direction
+    def update(self, detected, hero_rect):
+        if detected:
+            self.alert = True
+            self.speed = 0  # stop moving
 
-        # FLip direction when hitting screen boundaries
+        # Face the hero
+            if hero_rect.centerx > self.rect.centerx:
+                self.direction = 1
+            else:
+                self.direction = -1
+        else:
+            self.alert = False
+            self.speed = 2  # normal patrol
+            self.rect.x += self.speed * self.direction
+
+        # Flip direction on screen borders
         if self.rect.right > WIDTH:
             self.rect.right = WIDTH
             self.direction *= -1
@@ -104,8 +115,42 @@ class Enemy:
             self.rect.left = 0
             self.direction *= -1
 
+    def draw_vision_cone(self, surface, detected):
+        cone_length = 200  # how far the enemy can see
+        cone_width = 80  # spread angle width
+
+        # Points of the triangle
+        if self.direction == 1:  # facing right
+            p1 = (self.rect.centerx, self.rect.centery - 20)
+            p2 = (self.rect.centerx + cone_length,
+                  self.rect.centery - 20 - cone_width // 2)
+            p3 = (self.rect.centerx + cone_length,
+                  self.rect.centery - 20 + cone_width // 2)
+        else:
+            p1 = (self.rect.centerx, self.rect.centery - 20)
+            p2 = (self.rect.centerx - cone_length,
+                  self.rect.centery - 20 - cone_width // 2)
+            p3 = (self.rect.centerx - cone_length,
+                  self.rect.centery - 20 + cone_width // 2)
+
+        # choose cone color
+        color = (255, 0, 0, 60) if detected else (255, 255, 0, 60)
+        # Transparent surface
+        cone_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        pygame.draw.polygon(cone_surface, color, (p1, p2, p3))
+
+        surface.blit(cone_surface, (0, 0))
+
+        return (p1, p2, p3)  # return points for detection check
+
     def draw(self, surface):
         surface.blit(self.image, self.rect)
+
+    def draw_alert(self, surface):
+        if self.alert:
+            font = pygame.font.SysFont("Arial", 28, bold=True)
+            text = font.render("!", True, (255, 0, 0))
+            surface.blit(text, (self.rect.centerx - 5, self.rect.top - 25))
 
 
 # ---- PLATFORMS ----
@@ -121,6 +166,17 @@ hero = Hero(200, 200)
 enemy = Enemy(300, 320)
 
 
+def point_in_triangle(pt, v1, v2, v3):
+    def sign(p1, p2, p3):
+        return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1])
+
+    b1 = sign(pt, v1, v2) < 0.0
+    b2 = sign(pt, v1, v3) < 0.0
+    b3 = sign(pt, v2, v3) < 0.0
+
+    return ((b1 == b2) and (b2 == b3))
+
+
 # --- MAIN GAME LOOP ---
 while True:
     for event in pygame.event.get():
@@ -129,13 +185,26 @@ while True:
             sys.exit()
 
     hero.update()
-    enemy.update()
 
-    # if needed for background placement earlier
+# --- calculate detection BEFORE updating enemy ---
+    (p1, p2, p3) = enemy.draw_vision_cone(screen, False)
+    hero_center = hero.rect.center
+    detected = point_in_triangle(hero_center, p1, p2, p3)
+
+# Direction-based filtering
+    if enemy.direction == 1 and hero.rect.centerx < enemy.rect.centerx:
+        detected = False
+    if enemy.direction == -1 and hero.rect.centerx > enemy.rect.centerx:
+        detected = False
+
+# --- now enemy knows whether hero is detected ---
+    enemy.update(detected, hero.rect)
+
+# --- draw everything ---
     screen.blit(background, (0, 0))
-
-    hero.draw(screen)
+    enemy.draw_vision_cone(screen, detected)
     enemy.draw(screen)
-
+    enemy.draw_alert(screen)
+    hero.draw(screen)
     pygame.display.flip()
     clock.tick(60)
